@@ -12,6 +12,8 @@
 </head>
 
 <body>
+	<div id="fb-root"></div>
+	
 	<!-- Todo App Interface -->
 
 	<div id="todoapp">
@@ -30,23 +32,13 @@
    <!-- Templates -->
 
    <script type="text/template" id="login-template">
-     <header id="header"></header>
-     <div class="login">
-       <form class="login-form">
-         <h2>Log In</h2>
-         <div class="error" style="display:none"></div>
-         <input type="text" id="login-username" placeholder="Username" />
-         <input type="password" id="login-password" placeholder="Password" />
-         <button>Log In</button>
-       </form>
-
-       <form class="signup-form">
-         <h2>Sign Up</h2>
-         <div class="error" style="display:none"></div>
-         <input type="text" id="signup-username" placeholder="Username" />
-         <input type="password" id="signup-password" placeholder="Create a Password" />
-         <button>Sign Up</button>
-       </form>
+		<header id="header"></header>
+		<div class="login">
+			<button class="btn action login provider facebook" id="fbLogin">Log in with Facebook</button>
+			
+			<div class="error">
+				<p>Please authorize our app to log in.</p>
+			</div>
      </div>
    </script>
 
@@ -109,6 +101,7 @@
 	<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.4.4/underscore-min.js"></script>
 
 	<script type-"text/javascript" src="public/js/main.js"></script>
+	<script type-"text/javascript" src="public/js/fb.js"></script>
 
 </body>
 

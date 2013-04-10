@@ -293,7 +293,8 @@ $(function() {
 	var LogInView = Parse.View.extend({
 		events: {
 			"submit form.login-form": "logIn",
-			"submit form.signup-form": "signUp"
+			"submit form.signup-form": "signUp",
+			"click .action.login.facebook": "fbLogIn"
 		},
 
 		el: ".content",
@@ -301,6 +302,22 @@ $(function() {
 		initialize: function() {
 			_.bindAll(this, "logIn", "signUp");
 			this.render();
+		},
+		
+		fbLogIn: function(e) {
+			this.$(".action.login.facebook").attr("disabled", "disabled");
+			
+			Parse.FacebookUtils.logIn(null, {
+				success: function(user) {
+					new ManageTodosView();
+					self.undelegateEvents();
+					delete self;
+				},
+				error: function(user, error) {
+					self.$(".error").show();
+					this.$(".action.login.facebook").removeAttr("disabled");
+				}
+			});
 		},
 
 		logIn: function(e) {
@@ -322,29 +339,6 @@ $(function() {
 			});
 
 			this.$(".login-form button").attr("disabled", "disabled");
-
-			return false;
-		},
-
-		signUp: function(e) {
-			var self = this;
-			var username = this.$("#signup-username").val();
-			var password = this.$("#signup-password").val();
-
-			Parse.User.signUp(username, password, { ACL: new Parse.ACL() }, {
-				success: function(user) {
-					new ManageTodosView();
-					self.undelegateEvents();
-					delete self;
-				},
-
-				error: function(user, error) {
-					self.$(".signup-form .error").html(error.message).show();
-					this.$(".signup-form button").removeAttr("disabled");
-				}
-			});
-
-			this.$(".signup-form button").attr("disabled", "disabled");
 
 			return false;
 		},
