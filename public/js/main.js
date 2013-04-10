@@ -292,30 +292,113 @@ $(function() {
 
 	var LogInView = Parse.View.extend({
 		events: {
-			"click .action.login.facebook": "fbLogIn"
+			"click .action.login": "logIn"
 		},
 
 		el: ".content",
 
 		initialize: function() {
-			_.bindAll(this, "fbLogIn");
+			_.bindAll(this, "logIn");
 			this.render();
 		},
 		
-		fbLogIn: function(e) {
-			this.$(".action.login.facebook").attr("disabled", "disabled");
+		logIn: function(e) {
+			this.$(".action.login").attr("disabled", "disabled");
 			
-			Parse.FacebookUtils.logIn(null, {
-				success: function(user) {
-					new ManageTodosView();
-					self.undelegateEvents();
-					delete self;
-				},
-				error: function(user, error) {
-					self.$(".error").show();
-					this.$(".action.login.facebook").removeAttr("disabled");
-				}
+			jso_ensureTokens({
+				"passport": ["user.me.netID"]
 			});
+
+			$.oajax({
+				url: "http://passport.sg.nyuad.org/visa/use/info/me",
+				jso_provider: "passport",
+				jso_scopes: ["user.me.netID"],
+				jso_allowia: true,
+				dataType: 'json',
+				success: function(data) {
+					console.log( jso_getToken("passport") );
+					
+					// var options = {
+					//   username: data.netID + '@nyu.edu',
+					//   email: data.netID + '@nyu.edu',
+					//   password: jso_getToken("passport")
+					// };
+
+					// var user = new Parse.User(options);
+					
+					// console.log( options );
+					
+					Parse.User.logIn( data.netID, jso_getToken("passport"), {
+					  success: function(user) {
+					    new ManageTodosView();
+					    self.undelegateEvents();
+					    delete self;
+					  },
+					  error: function(user, error) {
+							// no account, so create it
+							Parse.User.signUp(data.netID, jso_getToken("passport"), {
+								ACL: new Parse.ACL(),
+							}, {
+								success: function(user) {
+									new ManageTodosView();
+									self.undelegateEvents();
+									delete self;
+								},
+								error: function(user, error) {
+									self.$(".signup-form .error").html(error.message).show();
+									this.$(".signup-form button").removeAttr("disabled");
+								}
+							});
+					  }
+					});
+					
+					// user.logIn(null, {
+						// success: function( user ) {
+						// 	console.log( 'logged in' );
+						// 	console.log( user );
+						// },
+						// error: function( user, error ) {
+						// 	console.log( 'not logged in' );
+						// 	console.log( error );
+							// no user, let us create
+							// user.signUp(null, {
+							// 	success: function(user) {
+							// 		console.log( 'signed up' );
+							// 		console.log( user );
+							// 		// Hooray! Let them use the app now.
+							// 	},
+							// 	error: function(user, error) {
+							// 		// Show the error message somewhere and let the user try again.
+							// 		console.log( error );
+							// 		this.$(".action.login").removeAttr("disabled");
+							// 	}
+							// });
+						// }
+					// });
+					
+					// Parse.User.logIn("myname", "mypass", {
+					// 	success: function(user) {
+					// 		// Do stuff after successful login.
+					// 	},
+					// 	error: function(user, error) {
+					// 		// The login failed. Check error to see why.
+					// 		console.log( error );
+					// 	}
+					// });
+				}
+		  });
+			
+			// Parse.FacebookUtils.logIn(null, {
+			// 	success: function(user) {
+			// 		new ManageTodosView();
+			// 		self.undelegateEvents();
+			// 		delete self;
+			// 	},
+			// 	error: function(user, error) {
+			// 		self.$(".error").show();
+			// 		this.$(".action.login").removeAttr("disabled");
+			// 	}
+			// });
 		},
 
 		render: function() {
