@@ -37,33 +37,28 @@
 			<button class="btn action login provider facebook" id="fbLogin">Log in</button>
 			
 			<div class="error">
-				<p>Please authorize our app to log in.</p>
+				<p>You need to authorize our app to log in.</p>
 			</div>
      </div>
    </script>
 
-   <script type="text/template" id="manage-todos-template">
+   <script type="text/template" id="manage-template">
      <div id="user-info">
        Signed in as <%= Parse.User.current().get("username") %> (<a href="#" class="log-out">Log out</a>)
      </div>
 
-     <div class="section">
+		<div class="section">
 
-       <header id="header">
-         <input id="new-todo" placeholder="What needs to be done?" type="text" />
-       </header>
+			<header id="header">
+				<input id="new-meeting" placeholder="What is the event's name?" type="text" />
+			</header>
 
-       <div id="main">
-         <input id="toggle-all" type="checkbox">
-         <label for="toggle-all">Mark all as complete</label>
-
-         <ul id="todo-list">
-           <img src='images/spinner.gif' class='spinner' />
-         </ul>
-       </div>
-
-       <div id="todo-stats"></div>
-     </div>
+			<div id="main">
+				<ul id="meeting-list">
+					<img src='images/spinner.gif' class='spinner' />
+				</ul>
+			</div>
+		</div>
    </script>
 
     <script type="text/template" id="item-template">
@@ -75,6 +70,15 @@
 	</div>
 	<input class="edit" value="<%= content %>">
       </li>
+    </script>
+
+    <script type="text/template" id="meeting-template">
+      <li>
+			<div class="view">
+				<button class="meeting destroy"></button>
+			</div>
+			<input class="meeting edit" value="<%= name %>">
+		</li>
     </script>
 
     <script type="text/template" id="stats-template">
