@@ -50,26 +50,20 @@
 		<div class="section">
 
 			<header id="header">
-				<input id="new-meeting" placeholder="What is the event's name?" type="text" />
+				Which event would you like to use?
 			</header>
 
 			<div id="main">
-				<ul id="meeting-list">
-					<img src='images/spinner.gif' class='spinner' />
+				<ul id="item-list">
 				</ul>
 			</div>
 		</div>
    </script>
 
     <script type="text/template" id="item-template">
-      <li class="<%= done ? 'completed' : '' %>">
-	<div class="view">
-	  <input class="toggle" type="checkbox" <%= done ? 'checked="checked"' : '' %>>
-	  <label class="todo-content"><%= content %></label>
-	  <button class="todo-destroy"></button>
-	</div>
-	<input class="edit" value="<%= content %>">
-      </li>
+      <li>
+			<strong><%= name %></strong>
+		</li>
     </script>
 
     <script type="text/template" id="meeting-template">
@@ -79,24 +73,6 @@
 			</div>
 			<input class="meeting edit" value="<%= name %>">
 		</li>
-    </script>
-
-    <script type="text/template" id="stats-template">
-      <footer id="footer">
-	<span id="todo-count"><strong><%= remaining %></strong> <%= remaining == 1 ? 'item' : 'items' %> left</span>
-	<ul id="filters">
-	  <li>
-	    <a href="javascript:void(0)" id="all" class="selected">All</a>
-	  </li>
-	  <li>
-	    <a href="javascript:void(0)" id="active">Active</a>
-	  </li>
-	  <li>
-	    <a href="javascript:void(0)" id="completed">Completed</a>
-	  </li>
-	</ul>
-	<button id="clear-completed">Clear completed (<%= done %>)</button>
-      </footer>
     </script>
 
 	<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>

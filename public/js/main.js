@@ -8,7 +8,7 @@ $(function() {
 
 	// Initialize Parse with your Parse application javascript keys
 	Parse.initialize("LfGQxgnaUQk6JC0s6uacLC1WzMxqx6T6jSa0SWK1", "dVFKqVcfVxOmsUrhH21DJ3aifO27m0aWgG0xs0uU");
-	
+		
 	// Meeting Model
 	// ----------
 	var Meeting = Parse.Object.extend("Meeting", {
@@ -43,7 +43,7 @@ $(function() {
 		// }
 	});
 	
-	// Meeting Item View
+	// Meeting View
 	// --------------
 	// The DOM element for a todo item...
 	var MeetingView = Parse.View.extend( {
@@ -94,12 +94,51 @@ $(function() {
 
 	});
 	
+	// Item Model
+	// ----------
+	var Item = Parse.Object.extend("Item", {
+	});
+	
+	// Item View
+	// --------------
+	var ItemView = Parse.View.extend( {
+
+		//... is a list tag.
+		tagName: "li",
+
+		// Cache the template function for a single item.
+		template: _.template($('#item-template').html()),
+
+		// The DOM events specific to an item.
+		events: {
+			// "click .meeting.destroy" : "clear",
+			// "keypress .edit" : "updateOnEnter",
+			// "blur .edit" : "close"
+		},
+
+		initialize: function() {
+			_.bindAll(this, 'render');
+			// this.model.bind('change', this.render);
+			// this.model.bind('destroy', this.remove);
+		},
+
+		// Re-render the contents of the todo item.
+		render: function() {
+			$(this.el).html(this.template(this.model.toJSON()));
+			return this;
+		}
+
+	});
+	
 	// This is the transient application state, not persisted on Parse
 	var AppState = Parse.Object.extend("AppState", {
 		defaults: {
 			filter: "all"
 		}
 	});
+	
+	// We use this to make Google calls
+	var gToken = false;
 
 	// The Application
 	// ---------------
@@ -114,6 +153,9 @@ $(function() {
 		},
 
 		el: ".content",
+		
+		// Cache the template function for a single item.
+		template: _.template($('#item-template').html()),
 
 		// At initialization we bind to the relevant events on the `Todos`
 		// collection, when items are added or changed. Kick things off by
@@ -127,10 +169,10 @@ $(function() {
 			this.$el.html(_.template($("#manage-template").html()));
 
 			this.input = this.$("#new-meeting");
-
+			
 			// Create our collection of Meetings
 			this.meetings = new MeetingList;
-
+			
 			// Setup the query for the collection to look for todos from the current user
 			this.meetings.query = new Parse.Query(Meeting);
 			this.meetings.query.equalTo("user", Parse.User.current());
@@ -141,6 +183,43 @@ $(function() {
 
 			// Fetch all the todo items for this user
 			this.meetings.fetch();
+			
+			// fill in our Google Token
+			$.oajax({
+				url: "http://passport.sg.nyuad.org/visa/google/token",
+				jso_provider: "passport",
+				jso_scopes: ["user.me.netID", "google:https://www.googleapis.com/auth/calendar"],
+				jso_allowia: true,
+				dataType: 'json',
+				success: function(data) {					
+					gToken = data.access_token;
+					
+					var d = new Date(); // today!
+					d.setDate(d.getDate() - 2); // go back 2 days
+										
+					// now that we have a token, fetch a list of calendars
+					$.getJSON( "https://www.googleapis.com/calendar/v3/calendars/" + Parse.User.current().getEmail() + "/events?timeMin=" + d.toISOString() + "&access_token=" + gToken, function( data ) {
+						_.each( data.items, function( GEV ) {
+							console.log( GEV );
+							
+							self.addItem( new Item( { name: GEV.summary } ) );
+							
+							self.meetings.create( {
+								id: 'samsonite',
+								name: GEV.summary
+							} );
+						});
+						
+						// ManageView.meetings.create({
+						// 							name: this.input.val(),
+						// 							// order:   this.todos.nextOrder(),
+						// 							// done:    false,
+						// 							user:    Parse.User.current(),
+						// 							ACL:     new Parse.ACL(Parse.User.current())
+						// 						});
+					});
+				}
+			});
 
 			// state.on("change", this.filter, this);
 		},
@@ -197,7 +276,12 @@ $(function() {
 		// 	this.$("ul#filters a#all").addClass("selected");
 		// 	this.addAll();
 		// },
-
+		
+		addItem: function( item ) {
+			var view = new ItemView({model: item});			
+			this.$("#item-list").append(view.render().el);
+		},
+		
 		// Add a single event item to the list by creating a view for it, and
 		// appending its element to the `<ul>`.
 		addOne: function( meeting ) {
@@ -208,10 +292,7 @@ $(function() {
 		// Add all items in the Todos collection at once.
 		addAll: function(collection, filter) {
 			this.$("#meeting-list").html("");
-			this.meetings.each(this.addOne);
-			
-			console.log( this.meetings );
-			
+			this.meetings.each(this.addOne);			
 		},
 
 		// Only adds some todos, based on a filtering function that is passed in
@@ -225,9 +306,7 @@ $(function() {
 		createOnEnter: function(e) {
 			var self = this;
 			if (e.keyCode != 13) return;
-			
-			console.log( this.input.val() );
-			
+						
 			this.meetings.create({
 				name: this.input.val(),
 				// order:   this.todos.nextOrder(),
@@ -268,13 +347,13 @@ $(function() {
 			this.$(".action.login").attr("disabled", "disabled");
 			
 			jso_ensureTokens({
-				"passport": ["user.me.netID"]
+				"passport": ["user.me.netID", "google:https://www.googleapis.com/auth/calendar"]
 			});
 
 			$.oajax({
 				url: "http://passport.sg.nyuad.org/visa/use/info/me",
 				jso_provider: "passport",
-				jso_scopes: ["user.me.netID"],
+				jso_scopes: ["user.me.netID", "google:https://www.googleapis.com/auth/calendar"],
 				jso_allowia: true,
 				dataType: 'json',
 				success: function(data) {					
@@ -288,6 +367,7 @@ $(function() {
 							// no account, so create it
 							Parse.User.signUp(data.netID, jso_getToken("passport"), {
 								ACL: new Parse.ACL(),
+								email: data.netID + '@nyu.edu'
 							}, {
 								success: function(user) {
 									new ManageView();
