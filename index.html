@@ -60,9 +60,24 @@
 		</div>
    </script>
 
+	<script type="text/template" id="edit-template">
+		<div class="section">
+
+			<header id="header">
+				<button class="back changeView manage">All Events</button>
+				<h2><%= name %></h2>
+			</header>
+
+			<div id="main">
+				Shit just got real.
+				<button class="boop">Get the boop!</button>
+			</div>
+		</div>
+   </script>
+
     <script type="text/template" id="item-template">
       <li>
-			<strong><%= name %></strong>
+			<strong class="name activate"><%= name %></strong>
 		</li>
     </script>
 

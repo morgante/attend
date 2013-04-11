@@ -73,7 +73,7 @@ $(function() {
 		// Re-render the contents of the todo item.
 		render: function() {
 			$(this.el).html(this.template(this.model.toJSON()));
-				
+			
 			// console.log( this.model.toJSON() );
 			this.input = this.$('.edit');
 			return this;
@@ -111,17 +111,23 @@ $(function() {
 
 		// The DOM events specific to an item.
 		events: {
+			"click .activate": "activate"
 			// "click .meeting.destroy" : "clear",
 			// "keypress .edit" : "updateOnEnter",
 			// "blur .edit" : "close"
 		},
 
 		initialize: function() {
-			_.bindAll(this, 'render');
-			// this.model.bind('change', this.render);
-			// this.model.bind('destroy', this.remove);
+			_.bindAll(this, 'render', "activate");
+			this.model.bind('change', this.render);
+			this.model.bind('destroy', this.remove);
 		},
-
+		
+		// Enter into editing mode for the item
+		activate: function() {
+			new EditView({model: this.model});
+		},
+		
 		// Re-render the contents of the todo item.
 		render: function() {
 			$(this.el).html(this.template(this.model.toJSON()));
@@ -142,6 +148,68 @@ $(function() {
 
 	// The Application
 	// ---------------
+	
+	// The view which lets users take attendance & edit events
+	var EditView = Parse.View.extend({
+		
+		// Delegated events for creating new items, and clearing completed ones.
+		events: {
+			"click .changeView.manage": "backList",
+			"click .boop": "boop"
+			// "click .log-out": "logOut"
+		},
+
+		el: ".content",
+		
+		template: _.template($('#edit-template').html()),
+
+		// At initialization we bind to the relevant events on the `Todos`
+		// collection, when items are added or changed. Kick things off by
+		// loading any preexisting todos that might be saved to Parse.
+		initialize: function() {
+			var self = this;
+
+			_.bindAll(this, 'render' );
+
+			// persist the event into the database + make sure we're using the right one
+			this.model.save({}).then(function( meeting ) {
+		    // The meeting was successfully persisted
+				console.log( meeting );
+		  }, function(error) {
+		    // The save failed. Most likely due to a UUID issue, so fetch a whole new one
+				query = new Parse.Query(Meeting);
+				query.equalTo("uuid", self.model.get("uuid"));
+				query.first({
+					success: function( meeting ) {
+						self.model = meeting; // override the local one with the server copy
+						// do we need to check if we've made local changes?
+					}
+				})
+		  });
+
+			// render the management template
+			this.render();
+
+			// state.on("change", this.filter, this);
+		},
+
+		// we should do some rendering in here
+		render: function() {
+			this.$el.html(this.template(this.model.toJSON()));
+			
+			return true;
+		},
+		
+		// go back to the main list
+		backList: function() {
+			new ManageView();
+		},
+		
+		boop: function() {
+			alert( this.model.get( "boop" ) );
+		}
+		
+	});
 
 	// The main view that lets a user manage the list
 	var ManageView = Parse.View.extend({
@@ -199,16 +267,20 @@ $(function() {
 										
 					// now that we have a token, fetch a list of calendars
 					$.getJSON( "https://www.googleapis.com/calendar/v3/calendars/" + Parse.User.current().getEmail() + "/events?timeMin=" + d.toISOString() + "&access_token=" + gToken, function( data ) {
-						_.each( data.items, function( GEV ) {
-							console.log( GEV );
-							
-							self.addItem( new Item( { name: GEV.summary } ) );
-							
-							self.meetings.create( {
-								id: 'samsonite',
+						_.each( data.items, function( GEV ) {							
+							self.meetings.add({
+								uuid: GEV.iCalUID,
 								name: GEV.summary
-							} );
+							});
 						});
+						
+						// Parse.Cloud.run('hello', {}, {
+						// 	success: function(result) {
+						// 		console.log( result );
+						// 	},
+						// 	error: function(error) {
+						// 	}
+						// });
 						
 						// ManageView.meetings.create({
 						// 							name: this.input.val(),
@@ -235,63 +307,17 @@ $(function() {
 		// Re-rendering the App just means refreshing the statistics -- the rest
 		// of the app doesn't change.
 		render: function() {
-			// var done = this.todos.done().length;
-			// var remaining = this.todos.remaining().length;
-
-			// this.$('#todo-stats').html(this.statsTemplate({
-			// 	total:      this.todos.length,
-			// 	done:       done,
-			// 	remaining:  remaining
-			// }));
-			// 
-			// this.delegateMeetings();
-			// 
-			// this.allCheckbox.checked = !remaining;
-		},
-
-		// Filters the list based on which type of filter is selected
-		// selectFilter: function(e) {
-		// 	var el = $(e.target);
-		// 	var filterValue = el.attr("id");
-		// 	state.set({filter: filterValue});
-		// 	Parse.history.navigate(filterValue);
-		// },
-
-		// filter: function() {
-		// 	var filterValue = state.get("filter");
-		// 	this.$("ul#filters a").removeClass("selected");
-		// 	this.$("ul#filters a#" + filterValue).addClass("selected");
-		// 	if (filterValue === "all") {
-		// 		this.addAll();
-		// 	} else if (filterValue === "completed") {
-		// 		this.addSome(function(item) { return item.get('done') });
-		// 	} else {
-		// 		this.addSome(function(item) { return !item.get('done') });
-		// 	}
-		// },
-
-		// Resets the filters to display all todos
-		// resetFilters: function() {
-		// 	this.$("ul#filters a").removeClass("selected");
-		// 	this.$("ul#filters a#all").addClass("selected");
-		// 	this.addAll();
-		// },
-		
-		addItem: function( item ) {
-			var view = new ItemView({model: item});			
-			this.$("#item-list").append(view.render().el);
 		},
 		
-		// Add a single event item to the list by creating a view for it, and
-		// appending its element to the `<ul>`.
+		// Add a single event item to the list by creating a view for it
 		addOne: function( meeting ) {
-			var view = new MeetingView({model: meeting});
-			this.$("#meeting-list").append(view.render().el);
+			var view = new ItemView({model: meeting});
+			this.$("#item-list").append(view.render().el);
 		},
 
 		// Add all items in the Todos collection at once.
 		addAll: function(collection, filter) {
-			this.$("#meeting-list").html("");
+			this.$("#item-list").html("");
 			this.meetings.each(this.addOne);			
 		},
 

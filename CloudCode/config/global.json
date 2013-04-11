@@ -1,0 +1,14 @@
+{
+    "applications": {
+        "_default": {
+            "link": "attend"
+        }, 
+        "attend": {
+            "applicationId": "LfGQxgnaUQk6JC0s6uacLC1WzMxqx6T6jSa0SWK1", 
+            "masterKey": "nzTO06WNp8Fi5dM92cWK1y4nkVkIUvbQjGQJEAgA"
+        }
+    }, 
+    "global": {
+        "parseVersion": "1.2.3"
+    }
+}
