@@ -181,14 +181,26 @@ $(function() {
 				query.equalTo("uuid", self.model.get("uuid"));
 				query.first({
 					success: function( meeting ) {
-						self.model = meeting; // override the local one with the server copy
-						// do we need to check if we've made local changes?
+						// fill in any local properties we want to save
+						_.each( ['name', 'raw_description', 'raw_attendees', 'start', 'end'], function( prop ) {
+							meeting.set( prop, self.model.get( prop ) );
+						});
+						
+						// save them (assume Backbone is smart)
+						meeting.save();
+						
+						// override the local one with the server copy
+						self.model = meeting;
+						
+						// re-render
+						self.render();
+						
 					}
 				})
 		  });
 
 			// render the management template
-			this.render();
+			self.render();
 
 			// state.on("change", this.filter, this);
 		},
@@ -206,7 +218,7 @@ $(function() {
 		},
 		
 		boop: function() {
-			alert( this.model.get( "boop" ) );
+			alert( this.model.get( "raw_description" ) );
 		}
 		
 	});
@@ -267,10 +279,16 @@ $(function() {
 										
 					// now that we have a token, fetch a list of calendars
 					$.getJSON( "https://www.googleapis.com/calendar/v3/calendars/" + Parse.User.current().getEmail() + "/events?timeMin=" + d.toISOString() + "&access_token=" + gToken, function( data ) {
-						_.each( data.items, function( GEV ) {							
+						_.each( data.items, function( GEV ) {
+							console.log( GEV );
+												
 							self.meetings.add({
 								uuid: GEV.iCalUID,
-								name: GEV.summary
+								name: GEV.summary,
+								raw_description: GEV.description,
+								raw_attendees: GEV.attendees,
+								start: new Date( GEV.start.dateTime ),
+								end: new Date( GEV.end.dateTime )
 							});
 						});
 						
