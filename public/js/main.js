@@ -8,22 +8,66 @@ $(function() {
 
 	// Initialize Parse with your Parse application javascript keys
 	Parse.initialize("LfGQxgnaUQk6JC0s6uacLC1WzMxqx6T6jSa0SWK1", "dVFKqVcfVxOmsUrhH21DJ3aifO27m0aWgG0xs0uU");
-		
+	
+	// Attendance Model & Collection
+	// --------
+	var AttendEntry = Parse.Object.extend( "AttendEntry", {
+		// name: person name
+		// email: person email (tied to netID usually)
+		// attendance: whether they attended or not; -1 means no, 0 means maybe; 1 means yes
+	});
+	var Attendance = Parse.Collection.extend({
+		model: AttendEntry,
+	});
+	
 	// Meeting Model
 	// ----------
 	var Meeting = Parse.Object.extend("Meeting", {
 		// Default attributes for the todo.
 		defaults: {
-			name: "New Meeting"
+			name: "New Meeting",
+			attendance: []
 		},
 
 		// Ensure that each todo created has `content`.
 		initialize: function() {
+			this.bind("change:raw_attendees", this.change_raw_attendees, this)
+			
 			if (!this.get("name")) {
 				this.set({"name": this.defaults.name});
 			}
+			
+			// this.attendance = this.relation( "attendance" );
 		},
-
+		
+		change_raw_attendees: function( model, raw_attendees ) {
+			attendance = this.get( "attendance" );
+			// console.log( attendance );
+			
+			_.each( raw_attendees, function( person ) {
+				// online log attendance for people who accepted or took no action
+				if( person.responseStatus != 'declined' )
+				{					
+					// if( entries[ person.email ] == null )
+					// {
+					// 	new_entries.push( {
+					// 		'email': person.email,
+					// 		'name': person.displayName,
+					// 		'attended': 0 // -1 means no; 0 means unknown; 1 means yes
+					// 	} );
+					// }
+					// else
+					// {
+					// 	// push our existing entry into the new ones
+					// 	new_entries.push( entries[ person.email ] );
+					// }
+				}
+			});
+						
+			model.set( 'attendance', attendance );
+			
+		},
+		
 		// Toggle the `done` state of this todo item.
 		toggle: function() {
 			this.save({done: !this.get("done")});
@@ -174,7 +218,7 @@ $(function() {
 			// persist the event into the database + make sure we're using the right one
 			this.model.save({}).then(function( meeting ) {
 		    // The meeting was successfully persisted
-				console.log( meeting );
+				// console.log( meeting );
 		  }, function(error) {
 		    // The save failed. Most likely due to a UUID issue, so fetch a whole new one
 				query = new Parse.Query(Meeting);
@@ -218,7 +262,7 @@ $(function() {
 		},
 		
 		boop: function() {
-			alert( this.model.get( "raw_description" ) );
+			console.log( this.model.get( "attendance" ) );
 		}
 		
 	});
@@ -280,33 +324,20 @@ $(function() {
 					// now that we have a token, fetch a list of calendars
 					$.getJSON( "https://www.googleapis.com/calendar/v3/calendars/" + Parse.User.current().getEmail() + "/events?timeMin=" + d.toISOString() + "&access_token=" + gToken, function( data ) {
 						_.each( data.items, function( GEV ) {
-							console.log( GEV );
-												
-							self.meetings.add({
+							
+							mtg = new Meeting();
+							
+							mtg.set( {
 								uuid: GEV.iCalUID,
 								name: GEV.summary,
 								raw_description: GEV.description,
 								raw_attendees: GEV.attendees,
 								start: new Date( GEV.start.dateTime ),
 								end: new Date( GEV.end.dateTime )
-							});
+							} );
+							
+							self.meetings.add( mtg );
 						});
-						
-						// Parse.Cloud.run('hello', {}, {
-						// 	success: function(result) {
-						// 		console.log( result );
-						// 	},
-						// 	error: function(error) {
-						// 	}
-						// });
-						
-						// ManageView.meetings.create({
-						// 							name: this.input.val(),
-						// 							// order:   this.todos.nextOrder(),
-						// 							// done:    false,
-						// 							user:    Parse.User.current(),
-						// 							ACL:     new Parse.ACL(Parse.User.current())
-						// 						});
 					});
 				}
 			});
